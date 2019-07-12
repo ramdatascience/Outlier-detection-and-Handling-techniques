@@ -1,0 +1,95 @@
+outliers deduction and handling techinques
+
+1. Any obs >75% + 1.5 IQR is considered to be outlier
+
+calculation of outlier
+
+amount_desc= crddata.amount.describe()
+
+output
+-----
+count     1000.000000
+mean      3271.258000
+std       2822.736876
+min        250.000000
+25%       1365.500000
+50%       2319.500000
+75%       3972.250000
+max      18424.000000
+Name: amount, dtype: float64
+
+outliers=amount_desc[75%]+1.5*(amount_desc[75%]-amount_desc[25%])
+outliers- value: 7882.375
+
+finding out the rows having outliers
+
+crddata.loc[crddata.amount>outliers,]
+output=72 rows,
+index =5,17,18,57,63,70.....
+
+replacing the outliers value with mean
+
+crddata.loc[crddata.amount>outliers,'amount']=3271
+
+
+2. removing outlier rows using mean and standard deviation
+
+cred_datawoutoutliers=cred_data[np.abs(cred_data["amount"]-cred_data["amount"].mean())<=(3*cred_data["amount"].std())]
+
+print("Shape of the data before outlier removal",cred_data.shape) #1000,21
+print("Shape of the data after outlier removal",cred_datawoutoutliers.shape) #975,21
+
+3.replacing the outlier values with mean using 10th percentile and 95th percentile values as lower bound and upper  bound
+
+lower_bound=0.1
+upper_bound=0.95
+
+res=cred_data['amount'].quantile([lower_bound,upper_bound])
+res
+
+output
+0.10     932.0
+0.95    9162.7
+Name: amount, dtype: float64
+
+true_index=(res.loc[lower_bound] < cred_data['amount'].values) & \
+(cred_data['amount'].values < res.loc[upper_bound])
+
+##identifying the index of true_index -taking sample rows of 20:40
+
+true_index[20:40]
+
+output
+array([ True,  True,  True,  True,  True,  True, False, False,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True, False])
+
+-26 and 27 row has outliers in amount field
+
+--cross verifying this with false index
+
+false_index=~true_index
+false_index[20:40]
+
+array([False, False, False, False, False, False,  True,  True, False,
+       False, False, False, False, False, False, False, False, False,
+       False,  True])
+
+cred_data['amount'][true_index].size #returns 849 rows which follow this condition
+cred_data['amount'][false_index].size #returns 151 rows which do not fall within lowerboud and upper bound ranges
+
+cred_data[26:28]#amounts are 426,409 which is less than  lower_bound value of 932
+
+#replacing the outliers with mean of amount
+aveg=np.mean(cred_data['amount'][true_index])
+aveg
+
+output
+3063.4228504122498
+
+cred_data['amount'][false_index]=np.round(aveg,0)
+cred_data[26:28]
+
+26 3063.0
+27 3063.0
+
